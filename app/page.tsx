@@ -1,3 +1,4 @@
+import { WalletConnectButton } from "@/components/WalletConnectButton";
 import { Bell, Terminal, ArrowRight, MessageSquare, Shield, Award, Brain, CreditCard, Globe, Sparkles, Fingerprint, Eye, BarChart3, Lock, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
@@ -129,7 +130,7 @@ export default function Home() {
           <a className="font-['Inter'] tracking-tight text-sm uppercase text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer" href="#pricing">Pricing</a>
         </div>
         <div className="flex items-center gap-4">
-          <button className="bg-primary/10 cursor-pointer border border-primary text-primary px-4 py-2 rounded font-label-caps text-label-caps hover:bg-primary/20 transition-colors">Connect Wallet</button>
+          <WalletConnectButton />
         </div>
       </nav>
 
