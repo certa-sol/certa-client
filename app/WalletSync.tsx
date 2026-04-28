@@ -13,7 +13,11 @@ export function WalletSync() {
     // @ts-ignore
     const address = isConnected ? wallet.session?.account?.address?.toString() : null;
 
-    dispatch(setWalletStatus({ isConnected, address }));
+    if (!isConnected) {
+      dispatch(setWalletStatus({ isConnected, address, token: null }));
+    } else {
+      dispatch(setWalletStatus({ isConnected, address }));
+    }
   }, [wallet.status, wallet.session, dispatch]);
 
   return null;

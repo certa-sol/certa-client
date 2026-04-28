@@ -7,7 +7,7 @@ import { RootState } from "@/store";
 import { useWallet } from "@solana/react-hooks";
 
 export function RouteGuard() {
-  const { isConnected } = useSelector((state: RootState) => state.wallet);
+  const { isConnected, token } = useSelector((state: RootState) => state.wallet);
   const router = useRouter();
   const pathname = usePathname();
   const wallet = useWallet();
@@ -25,14 +25,14 @@ export function RouteGuard() {
   useEffect(() => {
     if (!mounted) return;
 
-    if (isConnected && pathname === "/") {
+    if (isConnected && token && pathname === "/") {
       setIsRedirecting(true);
       router.push("/dashboard");
-    } else if (!isConnected && pathname === "/dashboard") {
+    } else if ((!isConnected || !token) && pathname.startsWith("/dashboard")) {
       setIsRedirecting(true);
       router.push("/");
     }
-  }, [isConnected, pathname, router, mounted]);
+  }, [isConnected, token, pathname, router, mounted]);
 
   const showLoader = wallet.status === "connecting" || isRedirecting;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import {
@@ -12,48 +12,134 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-const mockQuestions = [
-  "Let's start with the basics. Can you explain the relationship between an account's owner and the program that can modify its data in Solana?",
-  "Good foundation. Now, what happens when you derive a PDA (Program Derived Address) and the bump seed produces a point on the ed25519 curve?",
-  "In the context of the Anchor framework, how do you enforce that an account passed into an instruction is actually the expected PDA?",
-];
+import { API_BASE_URL } from "@/lib/auth";
+import { startDiagnostic, submitTurn } from "@/lib/api";
+// Imports combined above
 
 export default function DiagnosticPage() {
-  const { isConnected } = useSelector((state: RootState) => state.wallet);
+  const { isConnected, token } = useSelector((state: RootState) => state.wallet);
   const router = useRouter();
 
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState("");
   const [currentAnswer, setCurrentAnswer] = useState("");
-  const [answers, setAnswers] = useState<string[]>([]);
+  const currentAnswerRef = useRef("");
+  const [timeLeft, setTimeLeft] = useState(30);
+
+  const updateAnswer = (val: string) => {
+    setCurrentAnswer(val);
+    currentAnswerRef.current = val;
+  };
+  const [questionCount, setQuestionCount] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [sessionResult, setSessionResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!isConnected) {
+  const questionStartTime = useRef<number>(0);
+  const eventSource = useRef<EventSource | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (eventSource.current) {
+        eventSource.current.close();
+      }
+    };
+  }, []);
+
+  if (!isConnected || !token) {
     return null;
   }
 
-  const progressPercentage = ((currentIndex) / mockQuestions.length) * 100;
-
-  const handleNext = () => {
-    if (!currentAnswer.trim()) return;
-
-    const newAnswers = [...answers, currentAnswer];
-    setAnswers(newAnswers);
-    setCurrentAnswer("");
-
-    if (currentIndex < mockQuestions.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      setIsFinished(true);
-      setIsAnalyzing(true);
-
-      // Fake API delay for analyzing results
-      setTimeout(() => {
+  const setupSSE = (sid: string) => {
+    if (eventSource.current) {
+      eventSource.current.close();
+    }
+    const es = new EventSource(`${API_BASE_URL}/api/session/${sid}/stream?token=${token}`);
+    
+    es.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (data.heartbeat) return;
+      if (data.error) {
+        setError(data.error);
+        return;
+      }
+      
+      if (data.complete) {
+        setIsFinished(true);
+        setSessionResult(data);
         setIsAnalyzing(false);
-      }, 3000);
+        es.close();
+      } else if (data.question) {
+        setCurrentQuestion(data.question);
+        setQuestionCount(prev => prev + 1);
+        setIsAnalyzing(false);
+        questionStartTime.current = Date.now();
+        setTimeLeft(30);
+      }
+    };
+
+    es.onerror = () => {
+      console.error("SSE connection error");
+      // Optional: implement reconnect logic
+    };
+
+    eventSource.current = es;
+  };
+
+  const handleStart = async () => {
+    try {
+      setHasStarted(true);
+      setIsAnalyzing(true);
+      setError(null);
+      const data = await startDiagnostic(token);
+      setSessionId(data.sessionId);
+      setCurrentQuestion(data.question);
+      setQuestionCount(1);
+      questionStartTime.current = Date.now();
+      setTimeLeft(30);
+      setupSSE(data.sessionId);
+      setIsAnalyzing(false);
+    } catch (err) {
+      setError("Failed to start diagnostic session");
+      setHasStarted(false);
+      setIsAnalyzing(false);
     }
   };
+
+  const handleNext = useCallback(async () => {
+    if (!sessionId) return;
+
+    const finalAnswer = currentAnswerRef.current.trim() ? currentAnswerRef.current : "No answer provided";
+    const elapsedMs = Date.now() - questionStartTime.current;
+    setIsAnalyzing(true);
+    
+    try {
+      await submitTurn(sessionId, finalAnswer, elapsedMs, token);
+      updateAnswer("");
+    } catch (err) {
+      setError("Failed to submit answer");
+      setIsAnalyzing(false);
+    }
+  }, [sessionId, token]);
+
+  useEffect(() => {
+    if (!hasStarted || isAnalyzing || isFinished) return;
+
+    const timer = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - questionStartTime.current) / 1000);
+      const remaining = Math.max(0, 30 - elapsed);
+      setTimeLeft(remaining);
+
+      if (remaining === 0) {
+        clearInterval(timer);
+        handleNext();
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [hasStarted, isAnalyzing, isFinished, handleNext]);
 
   const handleReturnToDashboard = () => {
     router.push("/dashboard");
@@ -74,28 +160,28 @@ export default function DiagnosticPage() {
 
             {!hasStarted ? (
               <button
-                onClick={() => setHasStarted(true)}
-                className="bg-primary text-on-primary-fixed cursor-pointer px-6 py-3 rounded-lg font-label-caps text-xs hover:bg-primary-fixed transition-all active:scale-95 inline-flex items-center gap-2"
+                onClick={handleStart}
+                disabled={isAnalyzing}
+                className="bg-primary text-on-primary-fixed cursor-pointer px-6 py-3 rounded-lg font-label-caps text-xs hover:bg-primary-fixed transition-all active:scale-95 inline-flex items-center gap-2 disabled:opacity-50"
               >
-                Start Diagnostic
+                {isAnalyzing ? "Starting..." : "Start Diagnostic"}
               </button>
             ) : (
-              /* Progress Bar */
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono-data text-xs text-on-surface-variant uppercase tracking-widest">
-                    Question {currentIndex + 1} of {mockQuestions.length}
+              /* Diagnostic Info */
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-mono-data text-xs text-on-surface-variant uppercase tracking-widest">
+                  Question {questionCount}
+                </span>
+                {isAnalyzing ? (
+                  <span className="font-mono-data text-xs text-primary animate-pulse">Processing...</span>
+                ) : (
+                  <span className={`font-mono-data text-xs ${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-primary'}`}>
+                    Time Left: {timeLeft}s
                   </span>
-                  <span className="font-mono-data text-xs text-primary">{Math.round(progressPercentage)}%</span>
-                </div>
-                <div className="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${progressPercentage}%` }}
-                  ></div>
-                </div>
+                )}
               </div>
             )}
+            {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
           </div>
 
           {hasStarted && (
@@ -108,7 +194,7 @@ export default function DiagnosticPage() {
                     <MessageSquare className="w-6 h-6 text-primary" />
                   </div>
                   <h2 className="relative z-10 font-body-main text-lg text-on-surface leading-snug font-medium">
-                    {mockQuestions[currentIndex]}
+                    {currentQuestion || "Loading question..."}
                   </h2>
                 </div>
 
@@ -120,9 +206,10 @@ export default function DiagnosticPage() {
                   <textarea
                     id="answer"
                     value={currentAnswer}
-                    onChange={(e) => setCurrentAnswer(e.target.value)}
-                    placeholder="Break down your analysis here. Be as detailed as possible..."
-                    className="w-full bg-transparent text-on-surface text-base leading-relaxed focus:outline-none resize-none grow min-h-[160px] placeholder:text-on-surface-variant/30 scrollbar-hide"
+                    onChange={(e) => updateAnswer(e.target.value)}
+                    disabled={isAnalyzing}
+                    placeholder={isAnalyzing ? "Waiting for next question..." : "Break down your analysis here. Be as detailed as possible..."}
+                    className="w-full bg-transparent text-on-surface text-base leading-relaxed focus:outline-none resize-none grow min-h-[160px] placeholder:text-on-surface-variant/30 scrollbar-hide disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -131,10 +218,10 @@ export default function DiagnosticPage() {
               <div className="flex justify-end">
                 <button
                   onClick={handleNext}
-                  disabled={!currentAnswer.trim()}
+                  disabled={isAnalyzing}
                   className="bg-primary text-on-primary-fixed px-8 py-3 rounded-lg font-label-caps text-xs hover:bg-primary-fixed transition-all active:scale-95 cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {currentIndex === mockQuestions.length - 1 ? "Submit Diagnostic" : "Next Question"}
+                  {isAnalyzing ? "Submitting..." : "Submit Answer"}
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -145,32 +232,41 @@ export default function DiagnosticPage() {
         /* Results Screen */
         <div className="grow flex items-center justify-center">
 
-          {isAnalyzing && false ? (
+          {isAnalyzing ? (
             <div className="flex flex-col items-center justify-center py-8">
               <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-6 glow-effect"></div>
               <h2 className="font-h2 text-2xl text-on-surface font-bold mb-2">Analyzing Responses</h2>
               <p className="font-body-main text-on-surface-variant">Claude is reviewing your answers and mapping your Solana skill topology...</p>
             </div>
-          ) : (
+          ) : sessionResult ? (
             <div className="flex flex-col max-w-2xl items-center py-4">
               <div className="w-20 h-20 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mb-6 glow-effect">
                 <CheckCircle className="w-10 h-10 text-primary" />
               </div>
               <h2 className="font-h2 text-3xl text-on-surface font-bold mb-3">Diagnostic Complete!</h2>
-              <p className="font-body-main text-on-surface-variant mb-8">
-                Based on your responses, you show a strong understanding of core Solana concepts. You are recommended to proceed to the paid assessment for certification.
+              <p className="font-body-main text-on-surface-variant mb-8 text-center">
+                {sessionResult.summary || "Based on your responses, you show a strong understanding of core Solana concepts. You are recommended to proceed to the paid assessment for certification."}
               </p>
 
-              <div className="grid grid-cols-2 gap-4 w-full mb-8 text-left">
-                <div className="bg-surface-container-lowest p-4 rounded-lg border border-white/5">
-                  <span className="block font-mono-data text-xs text-on-surface-variant mb-1">ACCOUNT MODEL</span>
-                  <span className="font-bold text-primary">Advanced</span>
-                </div>
-                <div className="bg-surface-container-lowest p-4 rounded-lg border border-white/5">
-                  <span className="block font-mono-data text-xs text-on-surface-variant mb-1">SECURITY</span>
-                  <span className="font-bold text-tertiary-fixed-dim">Intermediate</span>
-                </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full mb-8 text-left">
+                {sessionResult.scores && Object.entries(sessionResult.scores).map(([topic, score]) => (
+                  <div key={topic} className="bg-surface-container-lowest p-4 rounded-lg border border-white/5">
+                    <span className="block font-mono-data text-xs text-on-surface-variant mb-1 uppercase">{topic}</span>
+                    <span className="font-bold text-primary">{score as number}/10</span>
+                  </div>
+                ))}
               </div>
+
+              {sessionResult.gaps && sessionResult.gaps.length > 0 && (
+                <div className="w-full mb-8 text-left bg-surface-container/30 p-6 rounded-xl border border-white/5">
+                  <h3 className="font-h2 text-lg text-on-surface mb-3">Identified Gaps</h3>
+                  <ul className="list-disc list-inside space-y-2">
+                    {sessionResult.gaps.map((gap: string, i: number) => (
+                      <li key={i} className="text-on-surface-variant text-sm">{gap}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <button
                 onClick={handleReturnToDashboard}
@@ -179,7 +275,7 @@ export default function DiagnosticPage() {
                 Return to Dashboard
               </button>
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </main>
