@@ -18,7 +18,7 @@ export function WalletSync() {
     } else {
       dispatch(setWalletStatus({ isConnected, address }));
     }
-  }, [wallet.status, wallet.session, dispatch]);
+  }, [wallet.status, (wallet as any).session, dispatch]);
 
   return null;
 }

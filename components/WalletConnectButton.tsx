@@ -54,7 +54,7 @@ export function WalletConnectButton() {
   }
 
   async function handleAuth() {
-    if (!address || !wallet.session?.account) return;
+    if (!address || !(wallet as any).session?.account) return;
 
     setIsAuthenticating(true);
     setError(null);
@@ -62,7 +62,7 @@ export function WalletConnectButton() {
       const challenge = await getChallenge(address);
       const message = new TextEncoder().encode(challenge);
 
-      const signatureResult = await wallet.session.signMessage(message);
+      const signatureResult = await (wallet as any).session.signMessage(message);
       const signatureBase64 = Buffer.from(signatureResult).toString('base64');
 
 
@@ -77,11 +77,11 @@ export function WalletConnectButton() {
 
   useEffect(() => {
     // Only run auth if we explicitly clicked connect (pendingAuth is true)
-    if (pendingAuth && isConnected && address && wallet.session?.account && !token && !isAuthenticating) {
+    if (pendingAuth && isConnected && address && (wallet as any).session?.account && !token && !isAuthenticating) {
       setPendingAuth(false);
       handleAuth();
     }
-  }, [pendingAuth, isConnected, address, wallet.session, token, isAuthenticating]);
+  }, [pendingAuth, isConnected, address, (wallet as any).session, token, isAuthenticating]);
 
   return (
     <div className="relative">
