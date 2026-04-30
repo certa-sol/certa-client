@@ -44,8 +44,8 @@ export default function DashboardPage() {
       {/* Bento Grid Layout */}
       <div className="flex w-full">
 
-        {/* User Profile Summary (Col Span 8) */}
-        <div className="w-full bg-surface-container/40 backdrop-blur-md border border-white/10 border-t-white/15 border-l-white/15 rounded-xl p-6 md:p-8 flex flex-col justify-between transition-all duration-300">
+        {/* User Profile Summary */}
+        <div className="w-full lg:w-2/3 bg-surface-container/40 backdrop-blur-md border border-white/10 border-t-white/15 border-l-white/15 rounded-xl p-6 md:p-8 flex flex-col justify-between transition-all duration-300">
           <div className="flex flex-col sm:flex-row items-start justify-between mb-8 gap-4">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-surface-container-highest border-2 border-primary/30 flex items-center justify-center overflow-hidden">
@@ -81,6 +81,46 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        {/* Diagnostic Action */}
+        <Link href="/dashboard/diagnostic" className="group">
+          <div className="h-full bg-surface-container/20 hover:bg-surface-container/40 border border-white/5 hover:border-primary/20 rounded-xl p-6 transition-all duration-300 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <Radar className="w-16 h-16 text-primary" />
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 border border-primary/20">
+              <CheckCircle2 className="w-5 h-5 text-primary" />
+            </div>
+            <h3 className="text-xl font-bold text-on-surface mb-2">Free Diagnostic</h3>
+            <p className="text-on-surface-variant text-sm leading-relaxed mb-6">
+              Take a quick adaptive interview to map your current Solana knowledge topology.
+            </p>
+            <div className="flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-widest group-hover:gap-3 transition-all">
+              Start Now <Trophy className="w-3 h-3" />
+            </div>
+          </div>
+        </Link>
+
+        {/* Assessment Action */}
+        <Link href="/dashboard/assessment" className="group">
+          <div className="h-full bg-surface-container/20 hover:bg-surface-container/40 border border-white/5 hover:border-primary/20 rounded-xl p-6 transition-all duration-300 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <Shield className="w-16 h-16 text-primary" />
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 border border-primary/20">
+              <Medal className="w-5 h-5 text-primary" />
+            </div>
+            <h3 className="text-xl font-bold text-on-surface mb-2">Technical Assessment</h3>
+            <p className="text-on-surface-variant text-sm leading-relaxed mb-6">
+              Ready for certification? Launch the full-depth assessment to earn your on-chain credential.
+            </p>
+            <div className="flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-widest group-hover:gap-3 transition-all">
+              Get Certified <Trophy className="w-3 h-3" />
+            </div>
+          </div>
+        </Link>
       </div>
     </main>
   );
