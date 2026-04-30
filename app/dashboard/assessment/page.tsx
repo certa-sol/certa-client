@@ -59,9 +59,22 @@ export default function AssessmentPage() {
 
   return (
     <main className="flex-1 overflow-y-auto p-6 md:p-8 w-full mx-auto scrollbar-hide flex flex-col">
-      {!isFinished ? (
+      <div className="mb-10">
+        <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-on-surface mb-3">
+          Assessment
+        </h1>
+        <p className="text-on-surface-variant max-w-2xl text-sm md:text-base leading-relaxed mb-6">
+          Complete your formal Solana development assessment for certification.
+        </p>
+      </div>
+      <div className="flex flex-col items-center justify-center text-center py-16 gap-6">
+        <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+          <span className="font-mono-data text-xs text-primary tracking-widest uppercase">Coming Soon</span>
+        </div>
+      </div>
+      {/* {!isFinished ? (
         <>
-          {/* Header */}
           <div className="mb-10">
             <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-on-surface mb-3">
               Assessment
@@ -78,7 +91,6 @@ export default function AssessmentPage() {
                 Start Assessment
               </button>
             ) : (
-              /* Progress Bar */
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-mono-data text-xs text-on-surface-variant uppercase tracking-widest">
@@ -98,9 +110,7 @@ export default function AssessmentPage() {
 
           {hasStarted && (
             <>
-              {/* Question Area */}
               <div className="bg-surface-container/20 border border-white/5 rounded-xl overflow-hidden shadow-2xl mb-8 flex flex-col grow">
-                {/* Top half: The Question */}
                 <div className="flex flex-row gap-4 bg-surface-container/40 backdrop-blur-md p-8 md:p-10 border-b border-white/5 relative">
                   <div className="pt-1">
                     <MessageSquare className="w-6 h-6 text-primary" />
@@ -110,7 +120,6 @@ export default function AssessmentPage() {
                   </h2>
                 </div>
 
-                {/* Bottom half: The Answer */}
                 <div className="p-8 md:p-12 bg-surface-container-lowest/30 flex flex-col grow relative">
                   <label htmlFor="answer" className="font-label-caps text-xs text-primary tracking-widest mb-6 flex items-center gap-2 opacity-80">
                     YOUR ANSWER
@@ -125,7 +134,6 @@ export default function AssessmentPage() {
                 </div>
               </div>
 
-              {/* Controls */}
               <div className="flex justify-end">
                 <button
                   onClick={handleNext}
@@ -140,7 +148,6 @@ export default function AssessmentPage() {
           )}
         </>
       ) : (
-        /* Results Screen */
         <div className="grow flex items-center justify-center">
 
           {isAnalyzing ? (
@@ -179,7 +186,7 @@ export default function AssessmentPage() {
             </div>
           )}
         </div>
-      )}
-    </main>
+      )} */}
+    </main >
   );
 }

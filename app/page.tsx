@@ -1,12 +1,17 @@
+"use client";
+
 import { WalletConnectButton } from "@/components/WalletConnectButton";
-import { Bell, Terminal, ArrowRight, MessageSquare, Shield, Award, Brain, CreditCard, Globe, Sparkles, Fingerprint, Eye, BarChart3, Lock, CheckCircle2 } from "lucide-react";
+import { ArrowRight, MessageSquare, Shield, Award, Brain, CreditCard, Globe, Sparkles, Fingerprint, Eye, BarChart3, Lock, CheckCircle2, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 
 const howItWorksSteps = [
   {
     num: "01",
     title: "Free Diagnostic",
-    description: "Take a free adaptive interview powered by Claude AI. 8-12 questions that map your Solana knowledge across 6 core topic areas.",
+    description: "Take a free adaptive interview. 8-12 questions that map your Solana knowledge across 6 core topic areas.",
     icon: Brain,
   },
   {
@@ -32,7 +37,7 @@ const howItWorksSteps = [
 const featuresList = [
   {
     title: "AI-Adaptive Interview",
-    description: "Claude adjusts question difficulty in real-time based on your responses. Strong answers unlock deeper probing; weak ones trigger clarifying follow-ups.",
+    description: "The question difficulty is adjusted in real-time based on your responses. Strong answers unlock deeper probing; weak ones trigger clarifying follow-ups.",
     icon: Sparkles,
   },
   {
@@ -109,6 +114,9 @@ const pricingPlans = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+  const token = useSelector((state: RootState) => state.wallet.token);
+
   return (
     <>
       {/* Background Glow Blobs */}
@@ -130,6 +138,15 @@ export default function Home() {
           <a className="font-['Inter'] tracking-tight text-sm uppercase text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer" href="#pricing">Pricing</a>
         </div>
         <div className="flex items-center gap-4">
+          {token && (
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="hidden sm:flex items-center gap-2 bg-primary/10 border border-primary/30 text-primary px-4 py-2 rounded font-label-caps text-xs hover:bg-primary/20 transition-colors cursor-pointer"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              Dashboard
+            </button>
+          )}
           <WalletConnectButton />
         </div>
       </nav>
@@ -151,11 +168,11 @@ export default function Home() {
             AI-powered adaptive assessments that verify your Solana development expertise. Pass the assessment and mint a verified NFT credential to your wallet.
           </p>
           <div className="flex flex-wrap justify-center gap-md mt-sm">
-            <button className="bg-primary cursor-pointer text-on-primary font-label-caps text-label-caps px-6 py-3 rounded-lg border border-primary hover:bg-primary-fixed-dim transition-all glow-hover flex items-center gap-2">
+            <button onClick={() => router.push("/dashboard/diagnostic")} className="bg-primary cursor-pointer text-on-primary font-label-caps text-label-caps px-6 py-3 rounded-lg border border-primary hover:bg-primary-fixed-dim transition-all glow-hover flex items-center gap-2">
               Start Diagnostic
               <ArrowRight className="w-[18px] h-[18px]" />
             </button>
-            <button className="bg-transparent cursor-pointer text-on-surface font-label-caps text-label-caps px-6 py-3 rounded-lg border border-white/10 hover:bg-white/5 transition-all flex items-center gap-2">
+            <button onClick={() => router.push("/dashboard/assessment")} className="bg-transparent cursor-pointer text-on-surface font-label-caps text-label-caps px-6 py-3 rounded-lg border border-white/10 hover:bg-white/5 transition-all flex items-center gap-2">
               Get Certified
             </button>
           </div>

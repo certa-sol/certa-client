@@ -8,13 +8,17 @@ import {
     Medal,
     Trophy,
     FileText,
-    Star
+    Star,
+    Home
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
 
     const navItems = [
+        { name: "Home", href: "/", icon: Home },
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { name: "Diagnostics", href: "/dashboard/diagnostic", icon: CheckCircle2 },
         { name: "Assessment", href: "/dashboard/assessment", icon: FileText },
@@ -23,7 +27,7 @@ export function Sidebar() {
     return (
         <nav className="hidden md:flex fixed left-0 top-0 h-full w-64 border-r border-white/5 bg-surface-container-lowest/60 backdrop-blur-xl flex-col pt-8 pb-8 z-40">
             <div className="px-6 mb-12">
-                <h2 className="text-2xl font-black text-on-surface font-h2 uppercase tracking-tighter">CERTA</h2>
+                <h2 className="text-2xl font-black text-on-surface font-h2 uppercase tracking-tighter cursor-pointer" onClick={() => router.push("/")}>CERTA</h2>
                 <p className="font-mono-data text-xs text-primary-fixed-dim opacity-80 mt-1">Solana Verification</p>
             </div>
             <div className="flex flex-col grow space-y-1">

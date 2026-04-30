@@ -5,6 +5,7 @@ import { SolanaProvider } from "@solana/react-hooks";
 import StoreProvider from "./StoreProvider";
 import { WalletSync } from "./WalletSync";
 import { RouteGuard } from "@/components/RouteGuard";
+import { Toaster } from "react-hot-toast";
 
 const defaultConfig: SolanaClientConfig = {
     cluster: "devnet",
@@ -18,6 +19,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             <SolanaProvider config={defaultConfig}>
                 <WalletSync />
                 <RouteGuard />
+                <Toaster position="top-center" />
                 {children}
             </SolanaProvider>
         </StoreProvider>

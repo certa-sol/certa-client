@@ -11,10 +11,10 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 
 import { API_BASE_URL } from "@/lib/auth";
-import { startDiagnostic, submitTurn } from "@/lib/api";
-// Imports combined above
+import { startDiagnostic, submitTurn, getSessionResult } from "@/lib/api";
 
 export default function DiagnosticPage() {
   const { isConnected, token } = useSelector((state: RootState) => state.wallet);
@@ -35,11 +35,26 @@ export default function DiagnosticPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [sessionResult, setSessionResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const questionStartTime = useRef<number>(0);
   const eventSource = useRef<EventSource | null>(null);
 
+  /** Fetch the result once after SSE completes. */
+  const fetchAndApplyResult = useCallback(async (sid: string, tk: string) => {
+    try {
+      const result = await getSessionResult(sid, tk);
+      if (result.status === "complete") {
+        setSessionResult(result);
+        setIsFinished(true);
+        setIsAnalyzing(false);
+        sessionStorage.removeItem("certa_session_id");
+      }
+    } catch {
+      // Non-fatal — SSE result is already displayed
+    }
+  }, []);
+
+  // Cleanup SSE on unmount
   useEffect(() => {
     return () => {
       if (eventSource.current) {
@@ -47,6 +62,31 @@ export default function DiagnosticPage() {
       }
     };
   }, []);
+
+  // On reload: if a session was in-flight, fetch once.
+  // If complete → show results. If still active → clear and let user start fresh.
+  useEffect(() => {
+    if (!token) return;
+    const storedId = sessionStorage.getItem("certa_session_id");
+    if (!storedId) return;
+
+    (async () => {
+      try {
+        const result = await getSessionResult(storedId, token);
+        if (result.status === "complete") {
+          setSessionResult(result);
+          setIsFinished(true);
+          sessionStorage.removeItem("certa_session_id");
+        } else {
+          // Session was in-progress — auto-end it, start fresh
+          sessionStorage.removeItem("certa_session_id");
+        }
+      } catch {
+        sessionStorage.removeItem("certa_session_id");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   if (!isConnected || !token) {
     return null;
@@ -57,20 +97,22 @@ export default function DiagnosticPage() {
       eventSource.current.close();
     }
     const es = new EventSource(`${API_BASE_URL}/api/session/${sid}/stream?token=${token}`);
-    
+
     es.onmessage = (e) => {
       const data = JSON.parse(e.data);
       if (data.heartbeat) return;
       if (data.error) {
-        setError(data.error);
+        toast.error(data.error);
         return;
       }
-      
+
       if (data.complete) {
         setIsFinished(true);
-        setSessionResult(data);
-        setIsAnalyzing(false);
+        setIsAnalyzing(true); // show spinner while we fetch canonical result
+        toast.success("Diagnostic complete!");
         es.close();
+        // Fetch the authoritative result from the REST endpoint
+        fetchAndApplyResult(sid, token);
       } else if (data.question) {
         setCurrentQuestion(data.question);
         setQuestionCount(prev => prev + 1);
@@ -81,8 +123,7 @@ export default function DiagnosticPage() {
     };
 
     es.onerror = () => {
-      console.error("SSE connection error");
-      // Optional: implement reconnect logic
+      toast.error("Connection lost. Please refresh and try again.", { id: 'sse-error' });
     };
 
     eventSource.current = es;
@@ -92,9 +133,9 @@ export default function DiagnosticPage() {
     try {
       setHasStarted(true);
       setIsAnalyzing(true);
-      setError(null);
       const data = await startDiagnostic(token);
       setSessionId(data.sessionId);
+      sessionStorage.setItem("certa_session_id", data.sessionId);
       setCurrentQuestion(data.question);
       setQuestionCount(1);
       questionStartTime.current = Date.now();
@@ -102,7 +143,7 @@ export default function DiagnosticPage() {
       setupSSE(data.sessionId);
       setIsAnalyzing(false);
     } catch (err) {
-      setError("Failed to start diagnostic session");
+      toast.error("Failed to start diagnostic session");
       setHasStarted(false);
       setIsAnalyzing(false);
     }
@@ -114,12 +155,12 @@ export default function DiagnosticPage() {
     const finalAnswer = currentAnswerRef.current.trim() ? currentAnswerRef.current : "No answer provided";
     const elapsedMs = Date.now() - questionStartTime.current;
     setIsAnalyzing(true);
-    
+
     try {
       await submitTurn(sessionId, finalAnswer, elapsedMs, token);
       updateAnswer("");
     } catch (err) {
-      setError("Failed to submit answer");
+      toast.error("Failed to submit answer");
       setIsAnalyzing(false);
     }
   }, [sessionId, token]);
@@ -155,7 +196,7 @@ export default function DiagnosticPage() {
               Diagnostic
             </h1>
             <p className="text-on-surface-variant max-w-2xl text-sm md:text-base leading-relaxed mb-6">
-              Evaluate your Solana development skills powered by Claude AI.
+              Evaluate your Solana development skills.
             </p>
 
             {!hasStarted ? (
@@ -181,7 +222,6 @@ export default function DiagnosticPage() {
                 )}
               </div>
             )}
-            {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
           </div>
 
           {hasStarted && (
@@ -236,33 +276,87 @@ export default function DiagnosticPage() {
             <div className="flex flex-col items-center justify-center py-8">
               <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-6 glow-effect"></div>
               <h2 className="font-h2 text-2xl text-on-surface font-bold mb-2">Analyzing Responses</h2>
-              <p className="font-body-main text-on-surface-variant">Claude is reviewing your answers and mapping your Solana skill topology...</p>
+              <p className="font-body-main text-on-surface-variant">Reviewing your answers and mapping your Solana skill topology...</p>
             </div>
           ) : sessionResult ? (
-            <div className="flex flex-col max-w-2xl items-center py-4">
+            <div className="flex flex-col max-w-2xl w-full items-center py-4">
+              {/* Icon + Title */}
               <div className="w-20 h-20 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mb-6 glow-effect">
                 <CheckCircle className="w-10 h-10 text-primary" />
               </div>
               <h2 className="font-h2 text-3xl text-on-surface font-bold mb-3">Diagnostic Complete!</h2>
-              <p className="font-body-main text-on-surface-variant mb-8 text-center">
-                {sessionResult.summary || "Based on your responses, you show a strong understanding of core Solana concepts. You are recommended to proceed to the paid assessment for certification."}
+
+              {/* Verdict badge */}
+              {sessionResult.verdict && (
+                <span className="mb-6 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/15 border border-primary/30 font-mono-data text-xs text-primary uppercase tracking-widest">
+                  <Sparkles className="w-3 h-3" />
+                  {sessionResult.verdict}
+                </span>
+              )}
+
+              {/* Summary */}
+              <p className="font-body-main text-on-surface-variant mb-8 text-center leading-relaxed">
+                {sessionResult.summary || "Based on your responses, you show a strong understanding of core Solana concepts."}
               </p>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full mb-8 text-left">
-                {sessionResult.scores && Object.entries(sessionResult.scores).map(([topic, score]) => (
-                  <div key={topic} className="bg-surface-container-lowest p-4 rounded-lg border border-white/5">
-                    <span className="block font-mono-data text-xs text-on-surface-variant mb-1 uppercase">{topic}</span>
-                    <span className="font-bold text-primary">{score as number}/10</span>
+              {/* Scores */}
+              {sessionResult.scores && Object.keys(sessionResult.scores).length > 0 && (
+                <div className="w-full mb-8 text-left bg-surface-container/30 p-6 rounded-xl border border-white/5">
+                  <h3 className="font-h2 text-sm font-semibold text-on-surface mb-4 uppercase tracking-widest">Skill Scores</h3>
+                  <div className="space-y-3">
+                    {Object.entries(sessionResult.scores).map(([topic, score]) => {
+                      const pct = Math.round(((score as number) / 10) * 100);
+                      return (
+                        <div key={topic}>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="font-mono-data text-xs text-on-surface-variant uppercase">{topic}</span>
+                            <span className="font-mono-data text-xs text-primary font-bold">{score as number}/10</span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-primary transition-all duration-700"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
 
+              {/* Identified Gaps */}
               {sessionResult.gaps && sessionResult.gaps.length > 0 && (
                 <div className="w-full mb-8 text-left bg-surface-container/30 p-6 rounded-xl border border-white/5">
-                  <h3 className="font-h2 text-lg text-on-surface mb-3">Identified Gaps</h3>
-                  <ul className="list-disc list-inside space-y-2">
+                  <h3 className="font-h2 text-sm font-semibold text-on-surface mb-3 uppercase tracking-widest">Identified Gaps</h3>
+                  <ul className="space-y-2">
                     {sessionResult.gaps.map((gap: string, i: number) => (
-                      <li key={i} className="text-on-surface-variant text-sm">{gap}</li>
+                      <li key={i} className="flex items-start gap-2 text-on-surface-variant text-sm">
+                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary/60 shrink-0" />
+                        {gap}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Recommended Resources */}
+              {sessionResult.resources && sessionResult.resources.length > 0 && (
+                <div className="w-full mb-8 text-left bg-surface-container/30 p-6 rounded-xl border border-white/5">
+                  <h3 className="font-h2 text-sm font-semibold text-on-surface mb-3 uppercase tracking-widest">Recommended Resources</h3>
+                  <ul className="space-y-2">
+                    {sessionResult.resources.map((url: string, i: number) => (
+                      <li key={i}>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-primary text-sm hover:underline underline-offset-4 break-all"
+                        >
+                          <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                          {url}
+                        </a>
+                      </li>
                     ))}
                   </ul>
                 </div>
