@@ -168,8 +168,8 @@ export default function Home() {
             AI-powered adaptive assessments that verify your Solana development expertise. Pass the assessment and mint a verified NFT credential to your wallet.
           </p>
           <div className="flex flex-wrap justify-center gap-md mt-sm">
-            <button onClick={() => router.push("/dashboard/diagnostic")} className="bg-primary cursor-pointer text-on-primary font-label-caps text-label-caps px-6 py-3 rounded-lg border border-primary hover:bg-primary-fixed-dim transition-all glow-hover flex items-center gap-2">
-              Start Diagnostic
+            <button onClick={() => router.push("/dashboard")} className="bg-primary cursor-pointer text-on-primary font-label-caps text-label-caps px-6 py-3 rounded-lg border border-primary hover:bg-primary-fixed-dim transition-all glow-hover flex items-center gap-2">
+              Dashboard
               <ArrowRight className="w-[18px] h-[18px]" />
             </button>
             <button onClick={() => router.push("/dashboard/assessment")} className="bg-transparent cursor-pointer text-on-surface font-label-caps text-label-caps px-6 py-3 rounded-lg border border-white/10 hover:bg-white/5 transition-all flex items-center gap-2">

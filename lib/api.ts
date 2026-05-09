@@ -47,3 +47,37 @@ export async function getSessionResult(sessionId: string, token: string): Promis
 
   return response.json();
 }
+
+export async function verifyPayment(signature: string, currency: string, token: string): Promise<{ verified: boolean }> {
+  const response = await fetch(`${API_BASE_URL}/api/payment/verify`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ signature, currency })
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to verify payment");
+  }
+
+  return response.json();
+}
+
+export async function startAssessment(paymentSignature: string, currency: string, token: string): Promise<{ sessionId: string; question: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/session/assessment`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ paymentSignature, currency })
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to start assessment");
+  }
+
+  return response.json();
+}
