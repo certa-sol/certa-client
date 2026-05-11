@@ -219,7 +219,7 @@ export default function CredentialsPage() {
         {/* Certificate Detail Modal */}
         {selectedCert && (
           <div className="fixed inset-0 z-100 flex items-center justify-center p-4 md:p-8">
-            <div className="absolute inset-0 bg-background/95 backdrop-blur-xl" onClick={() => setSelectedCert(null)}></div>
+              <div className="absolute inset-0 bg-background/95 backdrop-blur-xl" onClick={() => setSelectedCert(null)}></div>
 
             <div className="relative bg-surface-container-lowest border border-white/10 rounded-[32px] w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col md:flex-row animate-in zoom-in-95 fade-in duration-300 scrollbar-hide overflow-hidden">
               {/* Close Button */}
