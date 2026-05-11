@@ -14,6 +14,7 @@ export function openStream(
   es.onmessage = (e) => {
     try {
       const data = JSON.parse(e.data);
+      console.log("Data: ", data);
       if (data.heartbeat) return;
       if (data.error) {
         onError(data.error);
@@ -23,6 +24,7 @@ export function openStream(
         onComplete(data);
         es.close();
       } else if (data.question) {
+        console.log("Question: ", data.question);
         onQuestion(data.question);
       }
     } catch (err) {

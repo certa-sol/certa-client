@@ -55,12 +55,7 @@
   --radius-full: 0.75rem;
 
   --spacing-unit: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-xs: 4px;
-  --spacing-xl: 48px;
   --spacing-gutter: 24px;
-  --spacing-lg: 24px;
   --spacing-container-max: 1280px;
 
   --font-label-caps: var(--font-inter);
@@ -81,6 +76,14 @@
   }
   .glow-hover:hover {
     box-shadow: 0 0 30px rgba(78, 222, 163, 0.4);
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
 
   .text-label-caps {
