@@ -50,12 +50,14 @@ export default function AssessmentPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
   const [questionCount, setQuestionCount] = useState(1);
-  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
+  // Separate restoring state from payment checking state
+  const [isRestoring, setIsRestoring] = useState(true);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
 
   useEffect(() => {
     const restoreSession = async () => {
       if (!token || phase !== 'idle') {
-        setIsCheckingStatus(false);
+        setIsRestoring(false);
         return;
       }
 
@@ -67,30 +69,19 @@ export default function AssessmentPage() {
           if (res && res.status === 'complete') {
             setResult(res);
             setPhase('complete');
-            setIsCheckingStatus(false);
-            return; // Don't check payment if session is complete
+            setIsRestoring(false);
+            return;
           } else if (res && res.status !== 'complete') {
             setPhase('active');
-            setIsCheckingStatus(false);
-            return; // Don't check payment if session is active
+            setIsRestoring(false);
+            return;
           }
         } catch (e) {
           localStorage.removeItem("certa_current_session");
         }
       }
-
-      // If no active session, check for unconsumed payment
-      try {
-        const status = await getPaymentStatus(token);
-        if (status.hasPaidAssessment && status.payment) {
-          setPaymentSignature(status.payment.signature);
-          setPhase('confirming');
-        }
-      } catch (e) {
-        console.error("Failed to check payment status", e);
-      } finally {
-        setIsCheckingStatus(false);
-      }
+      
+      setIsRestoring(false);
     };
     restoreSession();
   }, [token, phase]);
@@ -131,14 +122,34 @@ export default function AssessmentPage() {
     return null;
   }
 
-  if (isCheckingStatus) {
+  if (isRestoring) {
     return (
       <div className="grow w-full h-full flex flex-col items-center justify-center py-20">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-6 glow-effect"></div>
-        <p className="text-on-surface-variant animate-pulse font-mono-data text-xs uppercase tracking-widest">Checking Session Status...</p>
+        <p className="text-on-surface-variant animate-pulse font-mono-data text-xs uppercase tracking-widest">Restoring Session...</p>
       </div>
     );
   }
+
+  const handleStartClick = async () => {
+    if (!token) return;
+
+    setIsCheckingPayment(true);
+    try {
+      const status = await getPaymentStatus(token);
+      if (status.hasPaidAssessment && status.payment) {
+        setPaymentSignature(status.payment.signature);
+        setPhase('confirming');
+      } else {
+        setPhase('paying');
+      }
+    } catch (e) {
+      console.error("Failed to check payment status", e);
+      setPhase('paying');
+    } finally {
+      setIsCheckingPayment(false);
+    }
+  };
 
   const handlePaymentSuccess = async (sig: string) => {
     setPaymentSignature(sig);
@@ -215,7 +226,7 @@ export default function AssessmentPage() {
 
                     <div className="mt-6 lg:hidden">
                       <button
-                        onClick={() => setPhase('paying')}
+                        onClick={handleStartClick}
                         className="min-w-fit bg-primary-container hover:bg-primary-fixed-dim/90 text-white font-medium py-2.5 px-6 text-base rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
                       >
                         Start Assessment
@@ -279,7 +290,7 @@ export default function AssessmentPage() {
                     Once the assessment begins, it cannot be paused, cancelled, or abandoned. Navigation is strictly forward-only, so you will not be able to return to previous questions.
                   </p>
                   <button
-                    onClick={() => setPhase('paying')}
+                    onClick={handleStartClick}
                     className="w-full bg-primary-container hover:bg-primary-fixed-dim/90 text-white font-medium py-3 text-base rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
                   >
                     Start Assessment
@@ -288,9 +299,9 @@ export default function AssessmentPage() {
               </div>
             </div>
 
-            {phase !== 'idle' && (
+            {(phase !== 'idle' || isCheckingPayment) && (
               <div className="absolute inset-0 w-full h-full z-60 flex items-center justify-center">
-                <div className="absolute w-full h-full inset-0 bg-background/60 backdrop-blur-sm" onClick={() => phase === 'paying' && setPhase('idle')}></div>
+                <div className="absolute w-full h-full inset-0 bg-background/60 backdrop-blur-sm" onClick={() => (phase === 'paying' || isCheckingPayment) && !isCheckingPayment && setPhase('idle')}></div>
                 <div className="relative flex p-5 items-center justify-center w-full max-w-2xl animate-in fade-in zoom-in-95 duration-200 z-10">
                   {phase === 'paying' && (
                     <button
@@ -331,6 +342,16 @@ export default function AssessmentPage() {
                         <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-6 glow-effect"></div>
                         <h3 className="text-xl text-center font-bold text-white mb-2">Preparing Assessment</h3>
                         <p className="text-white/50 text-sm text-center">Connecting to secure environment...</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {isCheckingPayment && (
+                    <div className="bg-surface-container-lowest p-8 rounded-xl border border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+                      <div className="flex flex-col items-center justify-center py-4">
+                        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-6 glow-effect"></div>
+                        <h3 className="text-xl text-center font-bold text-white mb-2">Checking Payment Status</h3>
+                        <p className="text-white/50 text-sm text-center">Please wait a moment...</p>
                       </div>
                     </div>
                   )}
