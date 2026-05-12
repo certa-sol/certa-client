@@ -41,48 +41,6 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Bento Grid Layout */}
-      <div className="flex w-full">
-
-        {/* User Profile Summary */}
-        <div className="w-full lg:w-2/3 bg-surface-container/40 backdrop-blur-md border border-white/10 border-t-white/15 border-l-white/15 rounded-xl p-6 md:p-8 flex flex-col justify-between transition-all duration-300">
-          <div className="flex flex-col sm:flex-row items-start justify-between mb-8 gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-surface-container-highest border-2 border-primary/30 flex items-center justify-center overflow-hidden">
-                <User className="w-10 h-10 text-primary" />
-              </div>
-              <div>
-                <h2 className="font-h2 text-on-surface text-2xl font-bold">New Developer</h2>
-                <p className="font-mono-data text-primary-fixed-dim mt-1 tracking-wide">
-                  {address ? truncate(address) : "..."}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:items-end">
-              <span className="font-label-caps text-on-surface-variant mb-1 uppercase tracking-widest text-[10px]">Global Rank</span>
-              <span className="font-h2 text-surface-variant text-3xl font-bold">---</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4 border-t border-white/5 pt-6">
-            <div>
-              <span className="font-label-caps text-on-surface-variant uppercase tracking-widest block mb-1 text-[10px]">Status</span>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-outline-variant"></span>
-                <span className="font-body-main text-on-surface font-medium text-sm">Unverified</span>
-              </div>
-            </div>
-            <div>
-              <span className="font-label-caps text-on-surface-variant uppercase tracking-widest block mb-1 text-[10px]">Assessments</span>
-              <span className="font-body-main text-on-surface font-medium text-sm">0 Completed</span>
-            </div>
-            <div>
-              <span className="font-label-caps text-on-surface-variant uppercase tracking-widest block mb-1 text-[10px]">Success Rate</span>
-              <span className="font-body-main text-surface-variant font-medium text-sm">--%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         {/* Diagnostic Action */}
         <Link href="/dashboard/diagnostic" className="group">

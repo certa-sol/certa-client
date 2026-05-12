@@ -80,7 +80,7 @@ export default function AssessmentPage() {
           localStorage.removeItem("certa_current_session");
         }
       }
-      
+
       setIsRestoring(false);
     };
     restoreSession();
@@ -132,23 +132,26 @@ export default function AssessmentPage() {
   }
 
   const handleStartClick = async () => {
-    if (!token) return;
+    toast("Coming Soon!");
+    return;
 
-    setIsCheckingPayment(true);
-    try {
-      const status = await getPaymentStatus(token);
-      if (status.hasPaidAssessment && status.payment) {
-        setPaymentSignature(status.payment.signature);
-        setPhase('confirming');
-      } else {
-        setPhase('paying');
-      }
-    } catch (e) {
-      console.error("Failed to check payment status", e);
-      setPhase('paying');
-    } finally {
-      setIsCheckingPayment(false);
-    }
+    // if (!token) return;
+
+    // setIsCheckingPayment(true);
+    // try {
+    //   const status = await getPaymentStatus(token);
+    //   if (status.hasPaidAssessment && status.payment) {
+    //     setPaymentSignature(status.payment.signature);
+    //     setPhase('confirming');
+    //   } else {
+    //     setPhase('paying');
+    //   }
+    // } catch (e) {
+    //   console.error("Failed to check payment status", e);
+    //   setPhase('paying');
+    // } finally {
+    //   setIsCheckingPayment(false);
+    // }
   };
 
   const handlePaymentSuccess = async (sig: string) => {
@@ -226,10 +229,13 @@ export default function AssessmentPage() {
 
                     <div className="mt-6 lg:hidden">
                       <button
-                        onClick={handleStartClick}
-                        className="min-w-fit bg-primary-container hover:bg-primary-fixed-dim/90 text-white font-medium py-2.5 px-6 text-base rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                        disabled
+                        className="min-w-fit bg-white/5 text-white/20 font-medium py-2.5 px-6 text-base rounded-lg flex items-center justify-center gap-3 border border-white/5 cursor-not-allowed transition-all"
                       >
-                        Start Assessment
+                        <span className="opacity-50">Start Assessment</span>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary/10 text-primary/40 uppercase tracking-tighter border border-primary/20">
+                          Soon
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -290,10 +296,13 @@ export default function AssessmentPage() {
                     Once the assessment begins, it cannot be paused, cancelled, or abandoned. Navigation is strictly forward-only, so you will not be able to return to previous questions.
                   </p>
                   <button
-                    onClick={handleStartClick}
-                    className="w-full bg-primary-container hover:bg-primary-fixed-dim/90 text-white font-medium py-3 text-base rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    disabled
+                    className="w-full bg-white/5 text-white/20 font-medium py-2.5 text-base rounded-xl flex items-center justify-center gap-3 border border-white/5 cursor-not-allowed backdrop-blur-sm transition-all"
                   >
-                    Start Assessment
+                    <span className="opacity-50">Start Assessment</span>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary/10 text-primary/40 uppercase tracking-tighter border border-primary/20">
+                      Soon
+                    </span>
                   </button>
                 </div>
               </div>
